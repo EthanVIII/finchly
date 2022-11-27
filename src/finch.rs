@@ -1,4 +1,5 @@
 use crate::lexome::Lexome;
+use crate::lexome::Lexome::{NopA, NopB, NopC};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Finch {
@@ -39,7 +40,31 @@ impl Finch {
             &Lexome::NopA => { None }
             &Lexome::NopB => { None }
             &Lexome::NopC => { None }
-            &Lexome::IfNEqu => { println!("IfNEq"); None }
+
+            &Lexome::IfNEqu => {
+                let mut nop_ref: Lexome = Lexome::NopB;
+                let mut register: &u32 = &self.regi_2;
+                let mut complement_register: &u32 = &0;
+
+                let next_inst: &Lexome = &self.lexome[
+                    inc_h_non_mut(self.lexome.len(),self.inst_h)
+                    ];
+                if is_nop(next_inst) {nop_ref = next_inst.clone();}
+
+                match nop_ref {
+                    NopA => {register = &self.regi_1; complement_register = &self.regi_2}
+                    NopB => {register = &self.regi_2; complement_register = &self.regi_3}
+                    NopC => {register = &self.regi_3; complement_register = &self.regi_1}
+                    _ => {}
+                }
+
+                if register == complement_register {
+                    // skip next instruction
+                    self.inc_inst_h();
+                };
+                None
+            }
+
             &Lexome::IfLess => { println!("IfLess"); None }
             &Lexome::Pop => { println!("Pop"); None }
             &Lexome::Push => { println!("Push"); None }
@@ -67,13 +92,25 @@ impl Finch {
         ReturnPacket::empty()
     }
     pub(crate) fn inc_inst_h(&mut self) {
-        if self.inst_h + 1 == self.lexome.len() {
-            self.inst_h = 0;
-        }
-        else {
-            self.inst_h += 1;
-        }
+        self.inst_h = inc_h_non_mut(self.lexome.len(), self.inst_h)
     }
+}
+
+fn inc_h_non_mut(length: usize, current_h: usize) -> usize {
+    if current_h + 1 == length {0}
+    else {current_h + 1}
+}
+
+fn is_nop(nop: &Lexome) -> bool {
+    nop == NopA || nop == NopB || nop == NopC
+}
+
+// TODO: Possibly remove
+fn nop_complement(nop: Lexome) -> Option<Lexome> {
+    if nop == NopA {Some(NopB)}
+    if nop == NopB {Some(NopC)}
+    if nop == NopC {Some(NopA)}
+    else {None}
 }
 
 pub struct ReturnPacket {
