@@ -6,7 +6,7 @@ pub struct Finch {
     // CPU
     pub lexome: Vec<Lexome>,
     pub inst_h: usize,  pub(crate) read_h: usize,      pub(crate) writ_h: usize,      pub(crate) flow_h: usize,
-    pub(crate) regi_1: u32,        pub(crate) regi_2: u32,        pub(crate) regi_3: u32,
+    pub(crate) registers: Vec<u32>,
     pub(crate) stac_1: Vec<u32>,   pub(crate) stac_2: Vec<u32>,
     pub(crate) i_buff: u32,        pub(crate) o_buff: u32,
     // Info
@@ -22,7 +22,7 @@ impl Finch {
             // CPU
             lexome: vec![],
             inst_h: 0,      read_h: 0,      writ_h: 0,      flow_h: 0,
-            regi_1: 0,      regi_2: 0,      regi_3: 0,
+            registers: vec![0,0,0],
             stac_1: vec![], stac_2: vec![],
             i_buff: 0,      o_buff: 0,
             // Info
@@ -43,21 +43,17 @@ impl Finch {
 
             &Lexome::IfNEqu => {
                 let mut nop_ref: Lexome = Lexome::NopB;
-                let mut register: &u32 = &self.regi_2;
-                let mut complement_register: &u32 = &0;
-
                 let next_inst: &Lexome = &self.lexome[
                     inc_h_non_mut(self.lexome.len(),self.inst_h)
                     ];
-                if is_nop(next_inst) {nop_ref = next_inst.clone();}
-
-                match nop_ref {
-                    NopA => {register = &self.regi_1; complement_register = &self.regi_2}
-                    NopB => {register = &self.regi_2; complement_register = &self.regi_3}
-                    NopC => {register = &self.regi_3; complement_register = &self.regi_1}
-                    _ => {}
-                }
-
+                // check if the next item is a nop, if it is it changes the register.
+                if is_nop(next_inst) {
+                    nop_ref = next_inst.clone()
+                };
+                let register: &u32 = &self.registers[nop_to_register(&nop_ref).unwrap()];
+                let complement_register: &u32 = &self.registers[
+                    inc_register(nop_to_register(&nop_ref).unwrap()).unwrap()
+                    ];
                 if register == complement_register {
                     // skip next instruction
                     self.inc_inst_h();
@@ -65,7 +61,25 @@ impl Finch {
                 None
             }
 
-            &Lexome::IfLess => { println!("IfLess"); None }
+            &Lexome::IfLess => {
+                let mut nop_ref: Lexome = Lexome::NopB;
+                let next_inst: &Lexome = &self.lexome[
+                    inc_h_non_mut(self.lexome.len(),self.inst_h)
+                    ];
+                // check if the next item is a nop, if it is it changes the register.
+                if is_nop(next_inst) {
+                    nop_ref = next_inst.clone()
+                };
+                let register: &u32 = &self.registers[nop_to_register(&nop_ref).unwrap()];
+                let complement_register: &u32 = &self.registers[
+                    inc_register(nop_to_register(&nop_ref).unwrap()).unwrap()
+                    ];
+                if register >= complement_register {
+                    // skip next instruction
+                    self.inc_inst_h();
+                };
+                None
+            }
             &Lexome::Pop => { println!("Pop"); None }
             &Lexome::Push => { println!("Push"); None }
             &Lexome::SwapStk => { println!("SwapStk"); None }
@@ -102,16 +116,26 @@ fn inc_h_non_mut(length: usize, current_h: usize) -> usize {
 }
 
 fn is_nop(nop: &Lexome) -> bool {
-    nop == NopA || nop == NopB || nop == NopC
+    nop == &NopA || nop == &NopB || nop == &NopC
+}
+fn inc_register(index: usize) -> Option<usize> {
+    match index {
+        0 => Some(1),
+        1 => Some(2),
+        2 => Some(3),
+        _ => None
+    }
 }
 
-// TODO: Possibly remove
-fn nop_complement(nop: Lexome) -> Option<Lexome> {
-    if nop == NopA {Some(NopB)}
-    if nop == NopB {Some(NopC)}
-    if nop == NopC {Some(NopA)}
-    else {None}
+fn nop_to_register(nop: &Lexome) -> Option<usize> {
+    return match nop {
+        NopA => Some(0),
+        NopB => Some(1),
+        NopC => Some(2),
+        _ => None,
+    }
 }
+
 
 pub struct ReturnPacket {
     return_finch: Option<Finch>,
