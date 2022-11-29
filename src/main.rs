@@ -3,6 +3,7 @@ mod lexome;
 mod tests;
 
 use crate::finch::{Finch, ReturnPacket};
+use crate::lexome::Lexome;
 
 fn main() {
     let mut finch: Finch = Finch::new(0,0,0);
