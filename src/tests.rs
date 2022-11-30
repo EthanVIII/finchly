@@ -9,7 +9,7 @@ mod tests {
     #[test]
     fn increment() {
         let mut new_finch: Finch = Finch::new(0,0,0);
-        new_finch.lexome = finch::dummy_lexome();
+        new_finch.memory = finch::dummy_memory();
         new_finch.increment();
         assert_eq!(new_finch.inst_h,1);
     }
@@ -19,10 +19,10 @@ mod tests {
     fn nops() {
         let mut new_finch: Finch = Finch::new(0,0,0);
         let test_lexome: Vec<Lexome> = vec![NopA,NopB,NopC,NopC];
-        new_finch.lexome = test_lexome.clone();
+        new_finch.memory = test_lexome.clone();
 
         let mut comparing_finch: Finch = Finch {
-            lexome: test_lexome.clone(),
+            memory: test_lexome.clone(),
             inst_h: 3,
             read_h: 0,
             writ_h: 0,
@@ -51,9 +51,9 @@ mod tests {
     fn if_n_equ() {
         let mut new_finch: Finch = Finch::new(0,0,0);
         let test_lexome: Vec<Lexome> = vec![IfNEqu,NopB,NopC,NopC];
-        new_finch.lexome = test_lexome.clone();
+        new_finch.memory = test_lexome.clone();
         let mut comp_finch: Finch = Finch {
-            lexome: test_lexome.clone(),
+            memory: test_lexome.clone(),
             inst_h: 1,
             read_h: 0,
             writ_h: 0,
@@ -76,9 +76,9 @@ mod tests {
         let mut new_finch: Finch = Finch::new(0,0,0);
         let test_lexome: Vec<Lexome> = vec![IfNEqu,NopB,NopC,NopC];
         new_finch.regi_3 = 1;
-        new_finch.lexome = test_lexome.clone();
+        new_finch.memory = test_lexome.clone();
         let mut comp_finch: Finch = Finch {
-            lexome: test_lexome.clone(),
+            memory: test_lexome.clone(),
             inst_h: 3,
             read_h: 0,
             writ_h: 0,

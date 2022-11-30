@@ -1,10 +1,11 @@
 use crate::lexome::Lexome;
 use crate::lexome::Lexome::{NopA, NopB, NopC};
+use crate::Lexome::Nop;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Finch {
     // CPU
-    pub lexome: Vec<Lexome>,
+    pub memory: Vec<Lexome>,
     pub inst_h: usize,  pub(crate) read_h: usize,      pub(crate) writ_h: usize,      pub(crate) flow_h: usize,
     pub(crate) registers: Vec<u32>,
     pub(crate) stacks: Vec<Vec<u32>>,
@@ -15,13 +16,15 @@ pub struct Finch {
     pub(crate) x_loc: usize,       pub(crate) y_loc: usize,
     pub(crate) age: u128,
     pub(crate) inputs: Vec<u32>,
+    pub(crate) copy_mutation_rate: f64,
+    pub(crate) max_alloc_memory: usize
 }
 
 impl Finch {
     pub(crate) fn new(id: u64, x_loc: usize, y_loc: usize) -> Finch {
         Finch {
             // CPU
-            lexome: vec![],
+            memory: vec![],
             inst_h: 0,      read_h: 0,      writ_h: 0,      flow_h: 0,
             registers: vec![0,0,0],
             stacks: vec![vec![],vec![]],
@@ -32,16 +35,18 @@ impl Finch {
             x_loc,          y_loc,
             age: 0,
             inputs: vec![],
+            copy_mutation_rate: 0 as f64,
+            max_alloc_memory: 100,
         }
     }
     pub(crate) fn increment(&mut self) -> ReturnPacket {
-        self.age += 1;
-        // execute order
-        let instruction: &Lexome = &self.lexome[self.inst_h];
-        let return_finch: Option<Finch> = match instruction {
-            &Lexome::NopA => { None }
-            &Lexome::NopB => { None }
-            &Lexome::NopC => { None }
+        let instruction: &Lexome = &self.memory[self.inst_h];
+        let mut return_packet: ReturnPacket = ReturnPacket::empty();
+        match instruction {
+            &Lexome::Nop  => {}
+            &Lexome::NopA => {}
+            &Lexome::NopB => {}
+            &Lexome::NopC => {}
             &Lexome::IfNEqu => {
                 let nop_ref: Lexome = modify_nop(self,Lexome::NopB);
                 let register: &u32 = &self.registers[nop_to_register(&nop_ref).unwrap()];
@@ -52,7 +57,6 @@ impl Finch {
                     // skip next instruction
                     self.inc_inst_h();
                 };
-                None
             }
             &Lexome::IfLess => {
                 let nop_ref: Lexome = modify_nop(self,Lexome::NopB);
@@ -64,7 +68,6 @@ impl Finch {
                     // skip next instruction
                     self.inc_inst_h();
                 };
-                None
             }
             &Lexome::Pop => {
                 if self.stacks[self.active_stack].len() > 0 {
@@ -72,18 +75,15 @@ impl Finch {
                     let nop_ref: Lexome = modify_nop(self,Lexome::NopB);
                     self.registers[nop_to_register(&nop_ref).unwrap()] = pop_value;
                 }
-                None
             }
             &Lexome::Push => {
                 let nop_ref: Lexome = modify_nop(self,Lexome::NopB);
                 self.stacks[self.active_stack]
                     .push(self.registers[nop_to_register(&nop_ref).unwrap()]);
-                None
             }
             &Lexome::SwapStk => {
                 if self.active_stack == 1 {self.active_stack = 0}
                 else {self.active_stack = 1}
-                None
             }
             &Lexome::Swap => {
                 let nop_ref: Lexome = modify_nop(self, Lexome::NopB);
@@ -96,45 +96,147 @@ impl Finch {
                     .clone();
                 self.registers[nop_to_register(&nop_ref).unwrap()] = complement_content;
                 self.registers[nop_to_register(&nop_complement).unwrap()] = register_content;
-                None
             }
-            &Lexome::ShiftR => { println!("ShiftR"); None }
-            &Lexome::ShiftL => { println!("ShiftL"); None }
-            &Lexome::Inc => { println!("Inc"); None }
-            &Lexome::Dec => { println!("Dec"); None }
-            &Lexome::Add => { println!("Add"); None }
-            &Lexome::Sub => { println!("Sub"); None }
-            &Lexome::Nand => { println!("Nand"); None }
-            &Lexome::IO => { println!("IO"); None }
-            &Lexome::HAlloc => { println!("HAlloc"); None }
-            &Lexome::HDivide => { println!("HDivide"); None }
-            &Lexome::HCopy => { println!("HCopy"); None }
-            &Lexome::HSearch => { println!("HSearch"); None }
-            &Lexome::MovHead => { println!("MovHead"); None }
-            &Lexome::JmpHead => { println!("JmpHead"); None }
-            &Lexome::GetHead => { println!("GetHead"); None }
-            &Lexome::IfLabel => { println!("IfLabel"); None }
-            &Lexome::SetFlow => { println!("SetFlow"); None }
+            &Lexome::ShiftR => {
+                let nop_ref: Lexome = modify_nop(self, Lexome::NopB);
+                self.registers[nop_to_register(&nop_ref).unwrap()] = self
+                    .registers[nop_to_register(&nop_ref).unwrap()] >> 1;
+            }
+            &Lexome::ShiftL => {
+                let nop_ref: Lexome = modify_nop(self, Lexome::NopB);
+                self.registers[nop_to_register(&nop_ref).unwrap()] = self
+                    .registers[nop_to_register(&nop_ref).unwrap()] << 1;
+            }
+            &Lexome::Inc => {
+                let nop_ref: Lexome = modify_nop(self, Lexome::NopB);
+                self.registers[nop_to_register(&nop_ref).unwrap()] = self
+                    .registers[nop_to_register(&nop_ref).unwrap()] + 1;
+            }
+            &Lexome::Dec => {
+                let nop_ref: Lexome = modify_nop(self, Lexome::NopB);
+                self.registers[nop_to_register(&nop_ref).unwrap()] = self
+                    .registers[nop_to_register(&nop_ref).unwrap()] - 1;
+            }
+            &Lexome::Add => {
+                let b_value: &u32 = &self.registers[1];
+                let c_value: &u32 = &self.registers[2];
+                let target_reg_nop: Lexome = modify_nop(self, Lexome::NopB);
+                self.registers[nop_to_register(&target_reg_nop).unwrap()] = b_value + c_value;
+            }
+            &Lexome::Sub => {
+                let b_value: &u32 = &self.registers[1];
+                let c_value: &u32 = &self.registers[2];
+                let target_reg_nop: Lexome = modify_nop(self, Lexome::NopB);
+                self.registers[nop_to_register(&target_reg_nop).unwrap()] = b_value - c_value;
+            }
+            &Lexome::Nand => {
+                let b_value: &u32 = &self.registers[1];
+                let c_value: &u32 = &self.registers[2];
+                let target_reg_nop: Lexome = modify_nop(self, Lexome::NopB);
+                self.registers[nop_to_register(&target_reg_nop).unwrap()] = !(b_value & c_value);
+            }
+            &Lexome::IO => {
+                let nop_ref: Lexome = modify_nop(self, Lexome::NopB);
+                return_packet.output = Some(self
+                    .registers[nop_to_register(&nop_ref).unwrap()]
+                );
+                if self.inputs.len() > 0 {
+                    self.registers[nop_to_register(&nop_ref).unwrap()] = self.inputs.pop().unwrap();
+                }
+            }
+            &Lexome::HAlloc => {
+                let original_memory_size: usize = self.memory.len();
+                self.memory.append(&mut vec![Lexome::Nop; self.max_alloc_memory]);
+                self.registers[0] = original_memory_size as u32;
+            }
+            &Lexome::HDivide => {
+                if self.writ_h > self.read_h {
+                    let original_memory: &[Lexome] = &self.memory[..self.read_h];
+                    let offspring_memory: &[Lexome] = &self.memory[self.read_h..self.writ_h];
+                    let mut offspring: Finch = Finch::new(0, 0,0);
+                    offspring.memory = Vec::from(offspring_memory);
+                    self.memory = Vec::from(original_memory);
+                    self.read_h = 0;
+                    self.writ_h = 0;
+                    self.flow_h = 0;
+                    return_packet.return_finch = Some(offspring);
+                }
+            ;}
+            &Lexome::HCopy => {
+                // TODO: Implement Copy Mutation
+                self.memory[self.writ_h] = self.memory[self.read_h].clone();
+            }
+            // Jesus H. Christ this is a mess.
+            // This is the string search problem but for circular strings.
+            &Lexome::HSearch => {
+                let nop_label: Vec<Lexome> = read_nop_label(&self.memory,self.inst_h);
+                if nop_label.len() == 0 {
+                    self.registers[1] = 0;
+                    self.registers[2] = 0;
+                    self.flow_h = inc_h_non_mut(self.memory.len(),self.inst_h,1);
+                }
+                else {
+                    let search_memory: Vec<Lexome> = self.memory[]
+                    let mut start_index: usize = self.inst_h + nop_label.len();
+                    while start_index < self.memory.len() {
+                        let current_test_vec: [Lexome] = self.memory[start_index..inc_h_non_mut(
+                            self.memory.len(),
+                            start_index,
+                            nop_label.len() as u8
+                        )]
+                        if current_test_vec == nop_label {
+                            break;
+                        }
+                        else {
+
+                        }
+                    }
+                }
+            }
+            &Lexome::MovHead => { println!("MovHead");}
+            &Lexome::JmpHead => { println!("JmpHead");}
+            &Lexome::GetHead => { println!("GetHead");}
+            &Lexome::IfLabel => { println!("IfLabel");}
+            &Lexome::SetFlow => { println!("SetFlow");}
         };
         self.inc_inst_h();
-        ReturnPacket::empty()
+        self.age += 1;
+        return_packet
     }
     pub(crate) fn inc_inst_h(&mut self) {
-        self.inst_h = inc_h_non_mut(self.lexome.len(), self.inst_h)
+        self.inst_h = inc_h_non_mut(self.memory.len(), self.inst_h,1)
     }
 }
 
-fn modify_nop(finch: &mut Finch, default_nop: Lexome) -> Lexome{
-    let next_inst: Lexome = finch.lexome[
-        inc_h_non_mut(finch.lexome.len(),finch.inst_h)
+fn read_nop_label(memory: &Vec<Lexome>, current_pos: usize) -> Vec<Lexome> {
+    let mut flag: bool = true;
+    let mut pos: usize = current_pos;
+    let mut label_builder: Vec<Lexome> = vec![];
+    while flag {
+        pos = inc_h_non_mut(memory.len(),pos,1);
+        if is_nop(&memory[pos]) {
+            label_builder.push(*&memory[pos]);
+        }
+        else {flag = false}
+    }
+    label_builder
+}
+
+fn modify_nop(finch: &Finch, default_nop: Lexome) -> Lexome{
+    let next_inst: Lexome = finch.memory[
+        inc_h_non_mut(finch.memory.len(), finch.inst_h,1)
         ].clone();
     if is_nop(&next_inst) { next_inst }
     else { default_nop }
 }
 
-fn inc_h_non_mut(length: usize, current_h: usize) -> usize {
-    if current_h + 1 == length {0}
-    else {current_h + 1}
+fn inc_h_non_mut(length: usize, current_h: usize, repeat: u8) -> usize {
+    let mut pos: usize = current_h;
+    for _ in 1..repeat {
+        if current_h + 1 >= length {pos = 0}
+        else {pos = pos + 1}
+    }
+    pos
 }
 
 fn is_nop(nop: &Lexome) -> bool {
@@ -170,26 +272,22 @@ fn nop_to_register(nop: &Lexome) -> Option<usize> {
 
 
 pub struct ReturnPacket {
+    output: Option<u32>,
     return_finch: Option<Finch>,
     alloc_request: Option<usize>,
 }
 impl ReturnPacket {
     fn empty() -> ReturnPacket {
         ReturnPacket {
+            output: None,
             return_finch: None,
             alloc_request: None
-        }
-    }
-    fn return_packet(return_finch: Option<Finch>, alloc_request: Option<usize>) -> ReturnPacket {
-        ReturnPacket {
-            return_finch,
-            alloc_request,
         }
     }
 }
 
 // TODO Phase out eventually.
-pub fn dummy_lexome() -> Vec<Lexome> {
+pub fn dummy_memory() -> Vec<Lexome> {
     vec![
         Lexome::HAlloc,
         Lexome::HSearch,

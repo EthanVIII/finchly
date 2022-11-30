@@ -7,7 +7,7 @@ use crate::lexome::Lexome;
 
 fn main() {
     let mut finch: Finch = Finch::new(0,0,0);
-    finch.lexome = finch::dummy_lexome();
+    finch.memory = finch::dummy_memory();
     for i in 0..100 {
         let return_packet: ReturnPacket = finch.increment();
     }
