@@ -10,5 +10,6 @@ fn main() {
     finch.memory = finch::dummy_memory();
     for i in 0..100 {
         let return_packet: ReturnPacket = finch.increment();
+        println!("{:?}", return_packet);
     }
 }

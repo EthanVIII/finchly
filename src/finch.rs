@@ -1,3 +1,4 @@
+use std::slice::SliceIndex;
 use crate::lexome::Lexome;
 use crate::lexome::Lexome::{NopA, NopB, NopC};
 use crate::Lexome::Nop;
@@ -176,20 +177,46 @@ impl Finch {
                     self.flow_h = inc_h_non_mut(self.memory.len(),self.inst_h,1);
                 }
                 else {
-                    let search_memory: Vec<Lexome> = self.memory[]
-                    let mut start_index: usize = self.inst_h + nop_label.len();
-                    while start_index < self.memory.len() {
-                        let current_test_vec: [Lexome] = self.memory[start_index..inc_h_non_mut(
-                            self.memory.len(),
-                            start_index,
-                            nop_label.len() as u8
-                        )]
-                        if current_test_vec == nop_label {
+                    let mut present_flag: bool = false;
+                    let mut search_mem: Vec<Lexome> = self
+                        .memory[self.inst_h..self.memory.len()]
+                        .to_vec();
+                    search_mem.append(&mut self.memory[0..self.inst_h].to_vec());
+                    let mut index: usize = 0;
+                    while index < search_mem.len() {
+                        let test_vec: Vec<Lexome> = self
+                            .memory[index..index + nop_label.len()]
+                            .to_vec();
+                        if test_vec == nop_label {
+                            present_flag = true;
                             break;
                         }
                         else {
-
+                            let test_position: Option<usize> = self
+                                .memory[index.. index + nop_label.len()]
+                                .to_vec()
+                                .iter()
+                                .position(|&x| x == nop_label[0]);
+                           match test_position {
+                               Some(pos) => {index += pos}
+                               None => {index += nop_label.len()}
+                           }
                         }
+                    }
+                    if present_flag {
+                        let mut abs_pos: usize = 0;
+                        if index > self.memory.len() - self.inst_h {
+                            abs_pos = index - (self.memory.len() - self.inst_h)
+                        }
+                        if index < self.memory.len() - self.inst_h {
+                            abs_pos = index + (self.inst_h + nop_label.len());
+                        }
+                        if index == self.memory.len() - self.inst_h {
+                            abs_pos = 0;
+                        }
+                        self.registers[1] = (abs_pos as i32 - self.registers[1] as i32).abs() as u32;
+                        self.registers[2] = nop_label.len() as u32;
+                        self.flow_h = abs_pos;
                     }
                 }
             }
@@ -270,18 +297,16 @@ fn nop_to_register(nop: &Lexome) -> Option<usize> {
     }
 }
 
-
+#[derive(Debug)]
 pub struct ReturnPacket {
     output: Option<u32>,
     return_finch: Option<Finch>,
-    alloc_request: Option<usize>,
 }
 impl ReturnPacket {
     fn empty() -> ReturnPacket {
         ReturnPacket {
             output: None,
             return_finch: None,
-            alloc_request: None
         }
     }
 }
