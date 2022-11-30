@@ -220,9 +220,40 @@ impl Finch {
                     }
                 }
             }
-            &Lexome::MovHead => { println!("MovHead");}
-            &Lexome::JmpHead => { println!("JmpHead");}
-            &Lexome::GetHead => { println!("GetHead");}
+            &Lexome::MovHead => {
+                let nop_ref: Lexome = modify_nop(self, Lexome::NopA);
+                match nop_ref {
+                    NopA => {self.inst_h = self.flow_h;},
+                    NopB => {self.read_h = self.flow_h;},
+                    NopC => {self.writ_h = self.flow_h;},
+                    _ => {},
+                }
+
+            }
+            &Lexome::JmpHead => {
+                let nop_ref: Lexome = modify_nop(self, Lexome::NopA);
+                let c_val: u32 = self.registers[2];
+                match nop_ref {
+                    NopA => {
+                        self.inst_h = inc_h_non_mut(self.memory.len(), self.inst_h, c_val as u8);
+                    },
+                    NopB => {
+                        self.read_h = inc_h_non_mut(self.memory.len(), self.read_h, c_val as u8);
+                    },
+                    NopC => {
+                        self.writ_h = inc_h_non_mut(self.memory.len(), self.writ_h, c_val as u8);
+                    },
+                    _ => {},
+                }
+            }
+            &Lexome::GetHead => {
+                let nop_ref: Lexome = modify_nop(self, Lexome::NopA);
+                match nop_ref {
+                    NopA => {self.registers[2] = self.inst_h as u32; },
+                    NopB => {self.registers[2] = self.read_h as u32; },
+                    NopC => {self.registers[2] = self.writ_h as u32; },
+                    _ => {},
+                }}
             &Lexome::IfLabel => { println!("IfLabel");}
             &Lexome::SetFlow => { println!("SetFlow");}
         };
