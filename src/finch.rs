@@ -1,11 +1,15 @@
 use crate::lexome::Lexome;
+use crate::lexome::dummy_memory;
 
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Finch {
     // CPU
     pub memory: Vec<Lexome>,
-    pub inst_h: usize,  pub(crate) read_h: usize,      pub(crate) writ_h: usize,      pub(crate) flow_h: usize,
+    pub inst_h: usize,
+    pub(crate) read_h: usize,
+    pub(crate) writ_h: usize,
+    pub(crate) flow_h: usize,
     pub(crate) registers: Vec<u32>,
     pub(crate) stacks: Vec<Vec<u32>>,
     pub(crate) i_buff: u32,        pub(crate) o_buff: u32,
@@ -229,7 +233,6 @@ impl Finch {
                         self.registers[1] = (index + nop_label.len() + 1) as u32;
                         //self.registers[1] = (abs_pos as i32 - self.inst_h as i32).abs() as u32;
                         self.registers[2] = nop_label.len() as u32;
-                        println!("abs_pos: {}, nop_label.len(): {}",abs_pos, nop_label.len());
                         self.flow_h =  inc_h_non_mut(
                             self.memory.len(),
                             abs_pos,
@@ -380,27 +383,4 @@ impl ReturnPacket {
             return_finch: None,
         }
     }
-}
-
-// TODO Phase out eventually.
-pub fn dummy_memory() -> Vec<Lexome> {
-    vec![
-        Lexome::HAlloc,
-        Lexome::HSearch,
-        Lexome::NopC,
-        Lexome::NopA,
-        Lexome::MovHead,
-        Lexome::NopC,
-        // Copy Loop
-        Lexome::HSearch,
-
-        Lexome::HCopy,
-        Lexome::IfLabel,
-        Lexome::NopC,
-        Lexome::NopA,
-        Lexome::HDivide,
-        Lexome::MovHead,
-        Lexome::NopA,
-        Lexome::NopB
-    ]
 }

@@ -1,17 +1,18 @@
 #[cfg(test)]
 mod instruction_tests {
-    use crate::{Finch, inc_h_non_mut, ReturnPacket};
+    use crate::{Finch, ReturnPacket};
     use crate::finch;
-    use crate::finch::{dummy_memory, read_nop_label};
-    use crate::lexome;
+    use crate::finch::{inc_h_non_mut, read_nop_label};
+    use crate::lexome::{dummy_memory};
     use crate::Lexome::{Dec, HAlloc, HCopy, HDivide, HSearch, IfLabel, Inc, MovHead, Nop, Pop, Push};
     use crate::lexome::Lexome;
     use crate::lexome::Lexome::{IfNEqu, NopA, NopB, NopC};
 
+
     #[test]
     fn increment_1() {
         let mut new_finch: Finch = Finch::new(0,0,0);
-        new_finch.memory = finch::dummy_memory();
+        new_finch.memory = dummy_memory();
         new_finch.increment();
         assert_eq!(new_finch.inst_h,1);
     }

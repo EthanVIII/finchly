@@ -32,3 +32,25 @@ pub enum Lexome {
 impl Lexome {
     // TODO Lexome reading from files
 }
+
+pub fn dummy_memory() -> Vec<Lexome> {
+    vec![
+        Lexome::HAlloc,
+        Lexome::HSearch,
+        Lexome::NopC,
+        Lexome::NopA,
+        Lexome::MovHead,
+        Lexome::NopC,
+        // Copy Loop
+        Lexome::HSearch,
+
+        Lexome::HCopy,
+        Lexome::IfLabel,
+        Lexome::NopC,
+        Lexome::NopA,
+        Lexome::HDivide,
+        Lexome::MovHead,
+        Lexome::NopA,
+        Lexome::NopB
+    ]
+}
