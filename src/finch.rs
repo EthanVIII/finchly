@@ -18,6 +18,7 @@ pub struct Finch {
     pub(crate) copy_mutation_rate: f64,
     pub(crate) max_alloc_memory: usize,
     pub(crate) copy_history: Vec<Lexome>,
+    pub(crate) skip_next_non_nop_inst: bool,
 }
 
 impl Finch {
@@ -38,12 +39,20 @@ impl Finch {
             copy_mutation_rate: 0 as f64,
             max_alloc_memory: 150,
             copy_history: vec![],
+            skip_next_non_nop_inst: false,
         }
     }
     pub(crate) fn increment(&mut self) -> ReturnPacket {
         let instruction: &Lexome = &self.memory[self.inst_h];
         let mut return_packet: ReturnPacket = ReturnPacket::empty();
         let mut skip_inc: bool = false;
+        if self.skip_next_non_nop_inst {
+            if !is_nop(&self.memory[self.inst_h]) {
+                self.skip_next_non_nop_inst = false;
+                self.age += 1;
+                return return_packet;
+            }
+        }
         match instruction {
             &Lexome::Nop  => {}
             &Lexome::NopA => {}
@@ -170,6 +179,8 @@ impl Finch {
                 // TODO: Implement Copy Mutation
                 self.memory[self.writ_h] = self.memory[self.read_h].clone();
                 self.copy_history.push(self.memory[self.read_h]);
+                self.read_h = inc_h_non_mut(self.memory.len(),self.read_h,1);
+                self.writ_h = inc_h_non_mut(self.memory.len(),self.writ_h,1);
             }
             // Jesus H. Christ this is a mess.
             // This is the string search problem but for circular strings.
@@ -263,12 +274,15 @@ impl Finch {
                 let hist_len: usize = self.copy_history.len();
                 let mut skip_flag: bool = true;
                 if nop_label.len() <= hist_len {
+                    println!("{:?}",&nop_label[0..nop_label.len()]);
+                    println!("{:?}",&self.copy_history[hist_len - nop_label.len() .. hist_len]);
                     if nop_label[0..nop_label.len()] == self.copy_history[hist_len - nop_label.len() .. hist_len] {
+                        println!("TRIP");
                         skip_flag = false;
                     }
                 }
                 if skip_flag {
-                    self.inc_inst_h();
+                    self.skip_next_non_nop_inst = true;
                 }
             }
             &Lexome::SetFlow => {
@@ -352,8 +366,8 @@ fn nop_to_register(nop: &Lexome) -> Option<usize> {
 
 #[derive(Debug)]
 pub struct ReturnPacket {
-    output: Option<u32>,
-    return_finch: Option<Finch>,
+    pub(crate) output: Option<u32>,
+    pub(crate) return_finch: Option<Finch>,
 }
 impl ReturnPacket {
     fn empty() -> ReturnPacket {

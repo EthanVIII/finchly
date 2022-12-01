@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod instruction_tests {
-    use crate::Finch;
+    use crate::{Finch, ReturnPacket};
     use crate::finch;
     use crate::finch::{dummy_memory, read_nop_label};
     use crate::lexome;
-    use crate::Lexome::{HAlloc, HSearch, MovHead, Nop};
+    use crate::Lexome::{Dec, HAlloc, HCopy, HDivide, HSearch, IfLabel, Inc, MovHead, Nop, Pop, Push};
     use crate::lexome::Lexome;
     use crate::lexome::Lexome::{IfNEqu, NopA, NopB, NopC};
 
@@ -42,6 +42,9 @@ mod instruction_tests {
         finch.memory = test_lexome;
         finch.increment();
         assert_eq!(finch.memory.len(),150 as usize);
+        let mut lexome: Vec<Lexome> = vec![HAlloc,NopC,NopA,NopC];
+        lexome.append(&mut vec![Nop; 146]);
+        assert_eq!(finch.memory, lexome);
     }
 
     #[test]
@@ -227,10 +230,77 @@ mod instruction_tests {
     }
 
     // HCopy
+    #[test]
+    fn h_copy_1() {
+        let mut finch: Finch = Finch::new(0,0,0);
+        finch.memory = vec![NopA,NopB,HCopy,NopC,Pop,Push,MovHead,HSearch,
+                            Nop, Nop, Nop, Nop, Nop, Nop, Nop];
+        finch.inst_h = 2;
+        finch.read_h = 1;
+        finch.writ_h = 8;
+        finch.increment();
+        assert_eq!(finch.memory[8],NopB);
+        assert_eq!(finch.read_h,2);
+        assert_eq!(finch.writ_h,9);
+        assert_eq!(finch.copy_history[0],NopB);
+    }
+
+    #[test]
+    fn h_copy_2() {
+        let mut finch: Finch = Finch::new(0,0,0);
+        finch.memory = vec![HCopy,HCopy,HCopy,HCopy,HCopy,HCopy,HCopy,
+                            NopA,NopB,NopC,Pop,Push,MovHead,HSearch,
+                            Nop, Nop, Nop, Nop, Nop, Nop, Nop];
+        finch.inst_h = 0;
+        finch.read_h = 7;
+        finch.writ_h = 14;
+        for _ in 0..7 {
+            finch.increment();
+        }
+        assert_eq!(finch.memory[14..21],[NopA,NopB,NopC,Pop,Push,MovHead,HSearch]);
+        assert_eq!(finch.read_h,14);
+        assert_eq!(finch.writ_h,0);
+        assert_eq!(finch.copy_history,vec![NopA,NopB,NopC,Pop,Push,MovHead,HSearch]);
+    }
 
     // If Label
+    #[test]
+    fn if_label_1() {
+        let mut finch: Finch = Finch::new(0,0,0);
+        finch.memory = vec![IfLabel,NopC,NopA,Inc];
+        finch.copy_history = vec![NopB, NopC,NopA];
+        for _ in 0..4 {
+            finch.increment();
+        }
+        assert_eq!(finch.registers[0],0);
+        assert_eq!(finch.registers[1],1);
+        assert_eq!(finch.registers[2],0);
+    }
+
+    #[test]
+    fn if_label_2() {
+        let mut finch: Finch = Finch::new(0,0,0);
+        finch.memory = vec![IfLabel,NopC,NopA,Inc];
+        finch.copy_history = vec![NopB, NopC,NopA,NopB];
+        for _ in 0..4 {
+            finch.increment();
+        }
+        assert_eq!(finch.registers[0],0);
+        assert_eq!(finch.registers[1],0);
+        assert_eq!(finch.registers[2],0);
+    }
 
     // HDivide
+    fn h_divide_1() {
+        let mut finch: Finch = Finch::new(0,0,0);
+        finch.memory = vec![HDivide,NopC,NopA,Inc,NopB,NopC,NopA,Dec,IfLabel];
+        finch.read_h = 3;
+        finch.writ_h = 7;
+        let return_packet: ReturnPacket = finch.increment();
+        let new_finch: Finch = return_packet.return_finch.unwrap();
+        assert_eq!(finch.memory,vec![HDivide,NopC,NopA]);
+        assert_eq!(new_finch.memory, vec![Inc,NopB,NopC,NopA,Dec]);
+    }
 
 
     // IfLess,
@@ -246,14 +316,9 @@ mod instruction_tests {
     // Sub,
     // Nand,
     // IO,
-    // HAlloc,
     // HDivide,
-    // HCopy,
-    // HSearch,
-    // MovHead,
     // JmpHead,
     // GetHead,
-    // IfLabel,
     // SetFlow,
 
 }
