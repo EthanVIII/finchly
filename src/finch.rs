@@ -1,7 +1,5 @@
-use std::slice::SliceIndex;
 use crate::lexome::Lexome;
-use crate::lexome::Lexome::{NopA, NopB, NopC};
-use crate::Lexome::Nop;
+
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Finch {
@@ -18,7 +16,8 @@ pub struct Finch {
     pub(crate) age: u128,
     pub(crate) inputs: Vec<u32>,
     pub(crate) copy_mutation_rate: f64,
-    pub(crate) max_alloc_memory: usize
+    pub(crate) max_alloc_memory: usize,
+    pub(crate) copy_history: Vec<Lexome>,
 }
 
 impl Finch {
@@ -37,12 +36,14 @@ impl Finch {
             age: 0,
             inputs: vec![],
             copy_mutation_rate: 0 as f64,
-            max_alloc_memory: 100,
+            max_alloc_memory: 150,
+            copy_history: vec![],
         }
     }
     pub(crate) fn increment(&mut self) -> ReturnPacket {
         let instruction: &Lexome = &self.memory[self.inst_h];
         let mut return_packet: ReturnPacket = ReturnPacket::empty();
+        let mut skip_inc: bool = false;
         match instruction {
             &Lexome::Nop  => {}
             &Lexome::NopA => {}
@@ -146,13 +147,15 @@ impl Finch {
                 }
             }
             &Lexome::HAlloc => {
-                let original_memory_size: usize = self.memory.len();
-                self.memory.append(&mut vec![Lexome::Nop; self.max_alloc_memory]);
-                self.registers[0] = original_memory_size as u32;
+                if self.max_alloc_memory > self.memory.len() {
+                    let original_memory_size: usize = self.memory.len();
+                    self.memory.append(&mut vec![Lexome::Nop; self.max_alloc_memory - self.memory.len()]);
+                    self.registers[0] = original_memory_size as u32;
+                }
             }
             &Lexome::HDivide => {
-                if self.writ_h > self.read_h {
-                    let original_memory: &[Lexome] = &self.memory[..self.read_h];
+                if self.writ_h > self.read_h  && self.read_h > 0 {
+                    let original_memory: &[Lexome] = &self.memory[0..self.read_h];
                     let offspring_memory: &[Lexome] = &self.memory[self.read_h..self.writ_h];
                     let mut offspring: Finch = Finch::new(0, 0,0);
                     offspring.memory = Vec::from(offspring_memory);
@@ -166,6 +169,7 @@ impl Finch {
             &Lexome::HCopy => {
                 // TODO: Implement Copy Mutation
                 self.memory[self.writ_h] = self.memory[self.read_h].clone();
+                self.copy_history.push(self.memory[self.read_h]);
             }
             // Jesus H. Christ this is a mess.
             // This is the string search problem but for circular strings.
@@ -179,39 +183,38 @@ impl Finch {
                 else {
                     let mut present_flag: bool = false;
                     let mut search_mem: Vec<Lexome> = self
-                        .memory[self.inst_h..self.memory.len()]
+                        .memory[self.inst_h + nop_label.len() + 1..self.memory.len()]
                         .to_vec();
                     search_mem.append(&mut self.memory[0..self.inst_h].to_vec());
                     let mut index: usize = 0;
-                    while index < search_mem.len() {
-                        let test_vec: Vec<Lexome> = self
-                            .memory[index..index + nop_label.len()]
+                    while index < search_mem.len() - nop_label.len() + 1{
+                        let test_vec: Vec<Lexome> = search_mem[index..index + nop_label.len()]
                             .to_vec();
                         if test_vec == nop_label {
                             present_flag = true;
+                            println!("{:?} == {:?}", test_vec, nop_label);
                             break;
                         }
                         else {
-                            let test_position: Option<usize> = self
-                                .memory[index.. index + nop_label.len()]
-                                .to_vec()
-                                .iter()
-                                .position(|&x| x == nop_label[0]);
-                           match test_position {
-                               Some(pos) => {index += pos}
-                               None => {index += nop_label.len()}
-                           }
+                            index += 1;
                         }
                     }
+                    println!("{:?}", search_mem);
                     if present_flag {
                         let mut abs_pos: usize = 0;
-                        if index > self.memory.len() - self.inst_h {
-                            abs_pos = index - (self.memory.len() - self.inst_h)
+                        println!("{:?}", nop_label);
+                        println!("{:?}, {:?}, {:?}, {:?}", index, self.memory.len(), self.inst_h, nop_label.len());
+                        println!("{:?}", self.memory.len() - (self.inst_h + nop_label.len()));
+                        // fix
+                        if index > self.memory.len() - (self.inst_h + nop_label.len()) - 1 {
+                            println!("TAG");
+                            abs_pos = index - (self.memory.len() - self.inst_h - nop_label.len()) + 1;
                         }
-                        if index < self.memory.len() - self.inst_h {
-                            abs_pos = index + (self.inst_h + nop_label.len());
+
+                        if index < self.memory.len() - (self.inst_h + nop_label.len()) - 1 {
+                            abs_pos = index + (self.inst_h + nop_label.len() + 1 );
                         }
-                        if index == self.memory.len() - self.inst_h {
+                        if index == self.memory.len() - (self.inst_h + nop_label.len()) - 1 {
                             abs_pos = 0;
                         }
                         self.registers[1] = (abs_pos as i32 - self.registers[1] as i32).abs() as u32;
@@ -223,9 +226,9 @@ impl Finch {
             &Lexome::MovHead => {
                 let nop_ref: Lexome = modify_nop(self, Lexome::NopA);
                 match nop_ref {
-                    NopA => {self.inst_h = self.flow_h;},
-                    NopB => {self.read_h = self.flow_h;},
-                    NopC => {self.writ_h = self.flow_h;},
+                    Lexome::NopA => {self.inst_h = self.flow_h; skip_inc = true;},
+                    Lexome::NopB => {self.read_h = self.flow_h;},
+                    Lexome::NopC => {self.writ_h = self.flow_h;},
                     _ => {},
                 }
 
@@ -234,13 +237,14 @@ impl Finch {
                 let nop_ref: Lexome = modify_nop(self, Lexome::NopA);
                 let c_val: u32 = self.registers[2];
                 match nop_ref {
-                    NopA => {
+                    Lexome::NopA => {
                         self.inst_h = inc_h_non_mut(self.memory.len(), self.inst_h, c_val as u8);
+                        skip_inc = true;
                     },
-                    NopB => {
+                    Lexome::NopB => {
                         self.read_h = inc_h_non_mut(self.memory.len(), self.read_h, c_val as u8);
                     },
-                    NopC => {
+                    Lexome::NopC => {
                         self.writ_h = inc_h_non_mut(self.memory.len(), self.writ_h, c_val as u8);
                     },
                     _ => {},
@@ -249,15 +253,33 @@ impl Finch {
             &Lexome::GetHead => {
                 let nop_ref: Lexome = modify_nop(self, Lexome::NopA);
                 match nop_ref {
-                    NopA => {self.registers[2] = self.inst_h as u32; },
-                    NopB => {self.registers[2] = self.read_h as u32; },
-                    NopC => {self.registers[2] = self.writ_h as u32; },
+                    Lexome::NopA => {self.registers[2] = self.inst_h as u32; },
+                    Lexome::NopB => {self.registers[2] = self.read_h as u32; },
+                    Lexome::NopC => {self.registers[2] = self.writ_h as u32; },
                     _ => {},
                 }}
-            &Lexome::IfLabel => { println!("IfLabel");}
-            &Lexome::SetFlow => { println!("SetFlow");}
+            &Lexome::IfLabel => {
+                let nop_label: Vec<Lexome> = read_nop_label(&self.memory, self.inst_h);
+                let hist_len: usize = self.copy_history.len();
+                let mut skip_flag: bool = true;
+                if nop_label.len() <= hist_len {
+                    if nop_label[0..nop_label.len()] == self.copy_history[hist_len - nop_label.len() .. hist_len] {
+                        skip_flag = false;
+                    }
+                }
+                if skip_flag {
+                    self.inc_inst_h();
+                }
+            }
+            &Lexome::SetFlow => {
+                let nop_ref: Lexome = modify_nop(self, Lexome::NopC);
+                let reg_val: u32 = self.registers[nop_to_register(&nop_ref).unwrap()];
+                self.flow_h = reg_val as usize % self.memory.len();
+            }
         };
-        self.inc_inst_h();
+        if !skip_inc {
+            self.inc_inst_h();
+        }
         self.age += 1;
         return_packet
     }
@@ -266,7 +288,7 @@ impl Finch {
     }
 }
 
-fn read_nop_label(memory: &Vec<Lexome>, current_pos: usize) -> Vec<Lexome> {
+pub fn read_nop_label(memory: &Vec<Lexome>, current_pos: usize) -> Vec<Lexome> {
     let mut flag: bool = true;
     let mut pos: usize = current_pos;
     let mut label_builder: Vec<Lexome> = vec![];
@@ -288,9 +310,9 @@ fn modify_nop(finch: &Finch, default_nop: Lexome) -> Lexome{
     else { default_nop }
 }
 
-fn inc_h_non_mut(length: usize, current_h: usize, repeat: u8) -> usize {
+pub fn inc_h_non_mut(length: usize, current_h: usize, repeat: u8) -> usize {
     let mut pos: usize = current_h;
-    for _ in 1..repeat {
+    for _ in 0..repeat {
         if current_h + 1 >= length {pos = 0}
         else {pos = pos + 1}
     }
@@ -298,14 +320,14 @@ fn inc_h_non_mut(length: usize, current_h: usize, repeat: u8) -> usize {
 }
 
 fn is_nop(nop: &Lexome) -> bool {
-    nop == &NopA || nop == &NopB || nop == &NopC
+    nop == &Lexome::NopA || nop == &Lexome::NopB || nop == &Lexome::NopC
 }
 
 fn inc_nop(nop: &Lexome) -> Option<Lexome> {
     return match nop {
-        NopA => Some(NopB),
-        NopB => Some(NopC),
-        NopC => Some(NopA),
+        Lexome::NopA => Some(Lexome::NopB),
+        Lexome::NopB => Some(Lexome::NopC),
+        Lexome::NopC => Some(Lexome::NopA),
         _ => None
     }
 }
@@ -321,9 +343,9 @@ fn inc_register(index: usize) -> Option<usize> {
 
 fn nop_to_register(nop: &Lexome) -> Option<usize> {
     return match nop {
-        NopA => Some(0),
-        NopB => Some(1),
-        NopC => Some(2),
+        Lexome::NopA => Some(0),
+        Lexome::NopB => Some(1),
+        Lexome::NopC => Some(2),
         _ => None,
     }
 }
