@@ -8,12 +8,13 @@ use crate::lexome::Lexome;
 fn main() {
     let mut finch: Finch = Finch::new(0,0,0);
     finch.memory = finch::dummy_memory();
+    println!("{:?}", finch.memory);
     for i in 0..100 {
+        println!("{:?}",finch.memory[finch.inst_h]);
         let return_packet: ReturnPacket = finch.increment();
         println!("{:?}", finch);
     }
     rules_func(finch);
-    println!("{}",inc_h_non_mut(50,0,1));
 }
 
 

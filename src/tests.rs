@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod instruction_tests {
-    use crate::{Finch, ReturnPacket};
+    use crate::{Finch, inc_h_non_mut, ReturnPacket};
     use crate::finch;
     use crate::finch::{dummy_memory, read_nop_label};
     use crate::lexome;
@@ -93,13 +93,13 @@ mod instruction_tests {
     fn h_search_1() {
         let mut finch: Finch = Finch::new(0,0,0);
         finch.memory = vec![NopB,NopB,NopC,HSearch,NopA,NopB,NopC,MovHead,Nop,Nop,
-                            Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,NopA,NopC,NopA,
-                            NopB,NopC,Nop,Nop];
+                            Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,NopA,NopC,NopB,
+                            NopC,NopA,Nop,Nop];
         finch.inst_h = 3;
         finch.increment();
         assert_eq!(finch.registers[2],3);
-        assert_eq!(finch.registers[1],21);
-        assert_eq!(finch.flow_h,21);
+        assert_eq!(finch.registers[1],18);
+        assert_eq!(finch.flow_h,24);
 
     }
 
@@ -107,20 +107,20 @@ mod instruction_tests {
     fn h_search_2() {
         let mut finch: Finch = Finch::new(0,0,0);
         finch.memory = vec![Nop,Nop,HSearch,NopA,MovHead,
-                            Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,NopA];
+                            Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,NopB];
         finch.inst_h = 2;
         finch.increment();
         assert_eq!(finch.registers[2],1);
-        assert_eq!(finch.registers[1],18);
-        assert_eq!(finch.flow_h,18);
+        assert_eq!(finch.registers[1],16);
+        assert_eq!(finch.flow_h,0);
 
     }
 
     #[test]
     fn h_search_3() {
         let mut finch: Finch = Finch::new(0,0,0);
-        finch.memory = vec![NopB,NopC,HSearch,NopA,NopB,NopC,NopA,MovHead,
-                            Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,NopA];
+        finch.memory = vec![NopC,NopA,HSearch,NopA,NopB,NopC,NopA,MovHead,
+                            Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,NopB];
         finch.inst_h = 2;
         finch.increment();
         assert_eq!(finch.registers[2],0);
@@ -129,61 +129,66 @@ mod instruction_tests {
     }
 
     #[test]
+    fn inc_h_non_mut_2() {
+        let x = inc_h_non_mut(10,9,5);
+        assert_eq!(x,4)
+    }
+
+    #[test]
     fn h_search_4() {
         let mut finch: Finch = Finch::new(0,0,0);
-        finch.memory = vec![NopB,NopC,NopA,HSearch,NopA,NopB,NopC,NopA
-                            ,MovHead,
-                            Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,NopA];
+        finch.memory = vec![NopC,NopA,NopB,HSearch,NopA,NopB,NopC,NopA
+                            ,MovHead,NopB];
         finch.inst_h = 3;
         finch.increment();
         assert_eq!(finch.registers[2],4);
-        assert_eq!(finch.registers[1],22);
-        assert_eq!(finch.flow_h,22);
+        assert_eq!(finch.registers[1],6);
+        assert_eq!(finch.flow_h,3);
     }
 
     #[test]
     fn h_search_5() {
         let mut finch: Finch = Finch::new(0,0,0);
-        finch.memory = vec![NopB,NopC,NopA,Nop,Nop,HSearch,NopA,NopB,NopC,NopA
+        finch.memory = vec![NopC,NopA,NopB,Nop,Nop,HSearch,NopA,NopB,NopC,NopA
                             ,MovHead,
-                            Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,NopA];
+                            Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,NopB];
         finch.inst_h = 5;
         finch.increment();
         assert_eq!(finch.registers[2],4);
-        assert_eq!(finch.registers[1],24);
-        assert_eq!(finch.flow_h,24);
+        assert_eq!(finch.registers[1],19);
+        assert_eq!(finch.flow_h,3);
     }
 
     #[test]
     fn h_search_6() {
         let mut finch: Finch = Finch::new(0,0,0);
-        finch.memory = vec![MovHead,NopB,NopC,NopA,Nop,Nop,HSearch,NopB,NopC,NopA
+        finch.memory = vec![MovHead,NopC,NopA,NopB,Nop,Nop,HSearch,NopB,NopC,NopA
                             ,MovHead,
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop];
         finch.inst_h = 6;
         finch.increment();
         assert_eq!(finch.registers[2],3);
-        assert_eq!(finch.registers[1],1);
-        assert_eq!(finch.flow_h,1);
+        assert_eq!(finch.registers[1],19);
+        assert_eq!(finch.flow_h,4);
     }
 
     #[test]
     fn h_search_7() {
         let mut finch: Finch = Finch::new(0,0,0);
-        finch.memory = vec![NopB,NopC,NopA,Nop,Nop,HSearch,NopB,NopC,NopA
+        finch.memory = vec![NopC,NopA,NopB,Nop,Nop,HSearch,NopB,NopC,NopA
                             ,MovHead,
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop];
         finch.inst_h = 5;
         finch.increment();
         assert_eq!(finch.registers[2],3);
-        assert_eq!(finch.registers[1],0);
-        assert_eq!(finch.flow_h,0);
+        assert_eq!(finch.registers[1],18);
+        assert_eq!(finch.flow_h,3);
     }
 
     #[test]
     fn h_search_8() {
         let mut finch: Finch = Finch::new(0,0,0);
-        finch.memory = vec![NopB,NopC,NopA,Nop,Nop,HSearch,NopB,NopC,NopA,NopA
+        finch.memory = vec![NopC,NopA,NopB,Nop,Nop,HSearch,NopB,NopC,NopA,NopA
                             ,MovHead,
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop];
         finch.inst_h = 5;
@@ -196,27 +201,27 @@ mod instruction_tests {
     #[test]
     fn h_search_9() {
         let mut finch: Finch = Finch::new(0,0,0);
-        finch.memory = vec![NopB,NopC,NopA,NopA,Nop,Nop,HSearch,NopB,NopC,NopA,NopA
+        finch.memory = vec![NopC,NopA,NopB,NopB,Nop,Nop,HSearch,NopB,NopC,NopA,NopA
                             ,MovHead,
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop];
         finch.inst_h = 6;
         finch.increment();
         assert_eq!(finch.registers[2],4);
-        assert_eq!(finch.registers[1],0);
-        assert_eq!(finch.flow_h,0);
+        assert_eq!(finch.registers[1],19);
+        assert_eq!(finch.flow_h,4);
     }
 
     #[test]
     fn h_search_10() {
         let mut finch: Finch = Finch::new(0,0,0);
-        finch.memory = vec![Nop,Nop,Nop,NopB,NopC,NopA,NopA,Nop,Nop,HSearch,NopB,NopC,NopA,NopA
+        finch.memory = vec![Nop,Nop,Nop,NopC,NopA,NopB,NopB,Nop,Nop,HSearch,NopB,NopC,NopA,NopA
                             ,MovHead,
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop];
         finch.inst_h = 9;
         finch.increment();
         assert_eq!(finch.registers[2],4);
-        assert_eq!(finch.registers[1],3);
-        assert_eq!(finch.flow_h,3);
+        assert_eq!(finch.registers[1],22);
+        assert_eq!(finch.flow_h,7);
     }
 
     #[test]
@@ -268,7 +273,7 @@ mod instruction_tests {
     fn if_label_1() {
         let mut finch: Finch = Finch::new(0,0,0);
         finch.memory = vec![IfLabel,NopC,NopA,Inc];
-        finch.copy_history = vec![NopB, NopC,NopA];
+        finch.copy_history = vec![NopB, NopA,NopB];
         for _ in 0..4 {
             finch.increment();
         }
@@ -281,7 +286,7 @@ mod instruction_tests {
     fn if_label_2() {
         let mut finch: Finch = Finch::new(0,0,0);
         finch.memory = vec![IfLabel,NopC,NopA,Inc];
-        finch.copy_history = vec![NopB, NopC,NopA,NopB];
+        finch.copy_history = vec![NopB, NopA,NopB,NopB];
         for _ in 0..4 {
             finch.increment();
         }

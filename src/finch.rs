@@ -48,6 +48,7 @@ impl Finch {
         let mut skip_inc: bool = false;
         if self.skip_next_non_nop_inst {
             if !is_nop(&self.memory[self.inst_h]) {
+                self.inc_inst_h();
                 self.skip_next_non_nop_inst = false;
                 self.age += 1;
                 return return_packet;
@@ -185,7 +186,10 @@ impl Finch {
             // Jesus H. Christ this is a mess.
             // This is the string search problem but for circular strings.
             &Lexome::HSearch => {
-                let nop_label: Vec<Lexome> = read_nop_label(&self.memory,self.inst_h);
+                let mut nop_label: Vec<Lexome> = read_nop_label(&self.memory,self.inst_h);
+                for i in 0..nop_label.len() {
+                    nop_label[i] = inc_nop(&nop_label[i]).unwrap();
+                }
                 if nop_label.len() == 0 {
                     self.registers[1] = 0;
                     self.registers[2] = 0;
@@ -203,22 +207,16 @@ impl Finch {
                             .to_vec();
                         if test_vec == nop_label {
                             present_flag = true;
-                            println!("{:?} == {:?}", test_vec, nop_label);
                             break;
                         }
                         else {
                             index += 1;
                         }
                     }
-                    println!("{:?}", search_mem);
                     if present_flag {
                         let mut abs_pos: usize = 0;
-                        println!("{:?}", nop_label);
-                        println!("{:?}, {:?}, {:?}, {:?}", index, self.memory.len(), self.inst_h, nop_label.len());
-                        println!("{:?}", self.memory.len() - (self.inst_h + nop_label.len()));
                         // fix
                         if index > self.memory.len() - (self.inst_h + nop_label.len()) - 1 {
-                            println!("TAG");
                             abs_pos = index - (self.memory.len() - self.inst_h - nop_label.len()) + 1;
                         }
 
@@ -228,9 +226,15 @@ impl Finch {
                         if index == self.memory.len() - (self.inst_h + nop_label.len()) - 1 {
                             abs_pos = 0;
                         }
-                        self.registers[1] = (abs_pos as i32 - self.registers[1] as i32).abs() as u32;
+                        self.registers[1] = (index + nop_label.len() + 1) as u32;
+                        //self.registers[1] = (abs_pos as i32 - self.inst_h as i32).abs() as u32;
                         self.registers[2] = nop_label.len() as u32;
-                        self.flow_h = abs_pos;
+                        println!("abs_pos: {}, nop_label.len(): {}",abs_pos, nop_label.len());
+                        self.flow_h =  inc_h_non_mut(
+                            self.memory.len(),
+                            abs_pos,
+                            (nop_label.len()) as u8
+                        );
                     }
                 }
             }
@@ -270,14 +274,14 @@ impl Finch {
                     _ => {},
                 }}
             &Lexome::IfLabel => {
-                let nop_label: Vec<Lexome> = read_nop_label(&self.memory, self.inst_h);
+                let mut nop_label: Vec<Lexome> = read_nop_label(&self.memory, self.inst_h);
+                for i in 0..nop_label.len() {
+                    nop_label[i] = inc_nop(&nop_label[i]).unwrap();
+                }
                 let hist_len: usize = self.copy_history.len();
                 let mut skip_flag: bool = true;
                 if nop_label.len() <= hist_len {
-                    println!("{:?}",&nop_label[0..nop_label.len()]);
-                    println!("{:?}",&self.copy_history[hist_len - nop_label.len() .. hist_len]);
                     if nop_label[0..nop_label.len()] == self.copy_history[hist_len - nop_label.len() .. hist_len] {
-                        println!("TRIP");
                         skip_flag = false;
                     }
                 }
@@ -327,7 +331,7 @@ fn modify_nop(finch: &Finch, default_nop: Lexome) -> Lexome{
 pub fn inc_h_non_mut(length: usize, current_h: usize, repeat: u8) -> usize {
     let mut pos: usize = current_h;
     for _ in 0..repeat {
-        if current_h + 1 >= length {pos = 0}
+        if pos + 1 >= length {pos = 0}
         else {pos = pos + 1}
     }
     pos
@@ -389,6 +393,7 @@ pub fn dummy_memory() -> Vec<Lexome> {
         Lexome::NopC,
         // Copy Loop
         Lexome::HSearch,
+
         Lexome::HCopy,
         Lexome::IfLabel,
         Lexome::NopC,
