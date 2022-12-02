@@ -1,6 +1,7 @@
 <p align="center">
   <img src="https://raw.githubusercontent.com/xrctius/finchly/master/finchly_logo.png" width="500px" />
 </p>
+
 Finchly simulates self-replication and genetic programming. It will provide full customisability in experiment topology, genetic instruction sets, organism incentives, and mutation rates. With the planned inclusion of measurement tools such as phenotype and ancestry tracking/logging, it will be able to model various ecological interactions (e.g. competition, parasitism, predation, mutualism).
 
 
@@ -28,7 +29,7 @@ Finchly and Avida both have No-Operation instructions, and have multiple variant
 
 # World Topology
 
-The current default topology is $\mathbb{R}^2$ as a bounded grid with Moore neighbourhood. A finch in this topology may only interact with neighbouring finches.
+The current default topology is a bounded $\mathbb{R}^2$ with Moore neighbourhood. A finch in this topology may only interact with neighbouring finches.
 
 There will also be support for a 2D toriodal grid with Moore neighbourhood, and a fully connected topology. In the latter, each finch is a neighbour to every other finch.
 
