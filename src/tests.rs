@@ -3,10 +3,10 @@ mod instruction_tests {
     use crate::{Finch, ReturnPacket};
     use crate::finch;
     use crate::finch::{inc_h_non_mut, read_nop_label};
-    use crate::lexome::{dummy_memory};
+    use crate::finch::{dummy_memory};
     use crate::Lexome::{Dec, HAlloc, HCopy, HDivide, HSearch, IfLabel, Inc, MovHead, Nop, Pop, Push};
-    use crate::lexome::Lexome;
-    use crate::lexome::Lexome::{IfNEqu, NopA, NopB, NopC};
+    use crate::finch::Lexome;
+    use crate::finch::Lexome::{IfNEqu, NopA, NopB, NopC};
 
 
     #[test]
