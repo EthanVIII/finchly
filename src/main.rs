@@ -1,7 +1,9 @@
 mod finch;
 mod tests;
+mod instructions;
 
-use crate::finch::{Finch, ReturnPacket, Instructions, dummy_memory};
+use instructions::{dummy_memory, Instructions, ReturnPacket};
+use crate::finch::Finch;
 
 fn main() {
     let mut finch: Finch = Finch::new(0,0,0);
