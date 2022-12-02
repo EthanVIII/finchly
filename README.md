@@ -3,6 +3,7 @@
 </p>
 Finchly simulates self-replication and genetic programming. It will provide full customisability in experiment topology, genetic instruction sets, organism incentives, and mutation rates. With the planned inclusion of measurement tools such as phenotype and ancestry tracking/logging, it will be able to model various ecological interactions (e.g. competition, parasitism, predation, mutualism).
 
+
 Finchly is inspired by projects such as **Tierra** and **Avida**. In particular, Avida is used in biological research to model ecological interactions and is under active development.
 
 # Developer Documentation
