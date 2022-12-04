@@ -1,4 +1,5 @@
 use crate::Finch;
+use crate::mutations::copy_mutation;
 
 pub fn read_nop_label(memory: &Vec<Instructions>, current_pos: usize) -> Vec<Instructions> {
     let mut flag: bool = true;
@@ -198,10 +199,13 @@ impl Finch {
                 }
             ;}
             &Instructions::HCopy => {
-                // TODO: Implement Copy Mutation
-                self.memory[self.writ_h] = self.memory[self.read_h].clone();
-                self.copy_history.push(self.memory[self.read_h]);
                 self.pre_mut_copy_history.push(self.memory[self.read_h]);
+                let post_mut_inst: Instructions = copy_mutation(
+                    self.memory[self.read_h],
+                    self.copy_mutation_rate
+                );
+                self.copy_history.push(self.memory[self.read_h]);
+                self.memory[self.writ_h] = post_mut_inst;
                 self.read_h = inc_h_non_mut(self.memory.len(),self.read_h,1);
                 self.writ_h = inc_h_non_mut(self.memory.len(),self.writ_h,1);
             }
@@ -345,33 +349,19 @@ impl ReturnPacket {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Instructions {
-    Nop,
-    NopA,
-    NopB,
-    NopC,
-    IfNEqu,
-    IfLess,
-    Pop,
-    Push,
-    SwapStk,
-    Swap,
-    ShiftR,
-    ShiftL,
-    Inc,
-    Dec,
-    Add,
-    Sub,
-    Nand,
-    IO,
-    HAlloc,
-    HDivide,
-    HCopy,
-    HSearch,
-    MovHead,
-    JmpHead,
-    GetHead,
-    IfLabel,
-    SetFlow,
+    Nop, NopA, NopB, NopC, IfNEqu, IfLess, Pop, Push, SwapStk, Swap, ShiftR, ShiftL, Inc, Dec, Add,
+    Sub, Nand, IO, HAlloc, HDivide, HCopy, HSearch, MovHead, JmpHead, GetHead, IfLabel, SetFlow,
+}
+
+pub fn possible_instructions() -> Vec<Instructions> {
+    vec![
+        Instructions::NopA, Instructions::NopB, Instructions::NopC, Instructions::IfNEqu,
+        Instructions::IfLess, Instructions::Pop, Instructions::Push, Instructions::SwapStk, Instructions::Swap,
+        Instructions::ShiftR, Instructions::ShiftL, Instructions::Inc, Instructions::Dec, Instructions::Add,
+        Instructions::Sub, Instructions::Nand, Instructions::IO, Instructions::HAlloc, Instructions::HDivide,
+        Instructions::HCopy, Instructions::HSearch, Instructions::MovHead, Instructions::JmpHead,
+        Instructions::GetHead, Instructions::IfLabel, Instructions::SetFlow
+    ]
 }
 
 impl Instructions {
@@ -388,7 +378,6 @@ pub fn dummy_memory() -> Vec<Instructions> {
         Instructions::NopC,
         // Copy Loop
         Instructions::HSearch,
-
         Instructions::HCopy,
         Instructions::IfLabel,
         Instructions::NopC,
@@ -399,3 +388,4 @@ pub fn dummy_memory() -> Vec<Instructions> {
         Instructions::NopB
     ]
 }
+

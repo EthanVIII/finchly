@@ -13,7 +13,7 @@ mod instruction_tests {
     fn increment_1() {
         let mut new_finch: Finch = Finch::new(0,0,0);
         new_finch.memory = dummy_memory();
-        new_finch.increment();
+        new_finch.clock_cycle_execute();
         assert_eq!(new_finch.inst_h,1);
     }
 

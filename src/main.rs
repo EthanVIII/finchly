@@ -1,6 +1,7 @@
 mod finch;
 mod tests;
 mod instructions;
+mod mutations;
 
 use instructions::{dummy_memory, Instructions, ReturnPacket};
 use crate::finch::Finch;
@@ -14,10 +15,12 @@ fn main() {
     }
 }
 
+// Input and Output
 struct Aviary {
     max_pop: u32,
     dim: (u32,u32),
     finches: Vec<Finch>,
+    logging: LoggingType,
 }
 
 enum LoggingType {
