@@ -1,3 +1,4 @@
+use rand::rngs::ThreadRng;
 use crate::Finch;
 use crate::mutations::copy_mutation;
 
@@ -64,7 +65,7 @@ fn nop_to_register(nop: &Instructions) -> Option<usize> {
 }
 
 impl Finch {
-    pub(crate) fn clock_cycle_execute(&mut self) -> ReturnPacket {
+    pub(crate) fn clock_cycle_execute(&mut self, thread_rng: &mut ThreadRng) -> ReturnPacket {
         let instruction: &Instructions = &self.memory[self.inst_h];
         let mut return_packet: ReturnPacket = ReturnPacket::empty();
         let mut skip_inc: bool = false;
@@ -197,12 +198,15 @@ impl Finch {
                     self.flow_h = 0;
                     return_packet.return_finch = Some(offspring);
                 }
+                //
             ;}
             &Instructions::HCopy => {
                 self.pre_mut_copy_history.push(self.memory[self.read_h]);
+                // Copy Mutation
                 let post_mut_inst: Instructions = copy_mutation(
                     self.memory[self.read_h],
-                    self.copy_mutation_rate
+                    self.copy_mutation_rate,
+                    thread_rng
                 );
                 self.copy_history.push(self.memory[self.read_h]);
                 self.memory[self.writ_h] = post_mut_inst;
@@ -210,7 +214,8 @@ impl Finch {
                 self.writ_h = inc_h_non_mut(self.memory.len(),self.writ_h,1);
             }
             // Jesus H. Christ this is a mess.
-            // This is the string search problem but for circular strings.
+            // This is the string search problem for circular strings with naive implementation.
+            // Should only be O(N), and mem is capped at 100.
             &Instructions::HSearch => {
                 let mut nop_label: Vec<Instructions> = read_nop_label(&self.memory, self.inst_h);
                 for i in 0..nop_label.len() {
@@ -324,6 +329,7 @@ impl Finch {
             self.inc_inst_h();
         }
         self.age += 1;
+        // Point Mutations
         return_packet
     }
     pub(crate) fn inc_inst_h(&mut self) {

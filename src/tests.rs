@@ -1,19 +1,18 @@
 #[cfg(test)]
 mod instruction_tests {
-    use crate::{Finch, ReturnPacket};
-    use crate::finch;
-    use crate::finch::{inc_h_non_mut, read_nop_label};
-    use crate::finch::{dummy_memory};
-    use crate::Lexome::{Dec, HAlloc, HCopy, HDivide, HSearch, IfLabel, Inc, MovHead, Nop, Pop, Push};
-    use crate::finch::Lexome;
-    use crate::finch::Lexome::{IfNEqu, NopA, NopB, NopC};
+    use rand::rngs::ThreadRng;
+    use crate::{dummy_memory, Finch, Instructions, ReturnPacket};
+    use crate::Instructions::{Dec, HAlloc, HCopy, HDivide, HSearch, IfLabel, Inc, MovHead, Nop, Pop, Push};
+    use crate::Instructions::{IfNEqu, NopA, NopB, NopC};
+    use crate::instructions::{inc_h_non_mut, read_nop_label};
 
 
     #[test]
     fn increment_1() {
         let mut new_finch: Finch = Finch::new(0,0,0);
         new_finch.memory = dummy_memory();
-        new_finch.clock_cycle_execute();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        new_finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(new_finch.inst_h,1);
     }
 
@@ -21,16 +20,16 @@ mod instruction_tests {
     #[test]
     fn nop_1() {
         let mut new_finch: Finch = Finch::new(0,0,0);
-        let test_lexome: Vec<Lexome> = vec![NopA,NopB,NopC,NopC];
-        new_finch.memory = test_lexome.clone();
-
+        let test_instructions: Vec<Instructions> = vec![NopA, NopB, NopC, NopC];
+        new_finch.memory = test_instructions.clone();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
         let mut comparing_finch: Finch = new_finch.clone();
         comparing_finch.age = 3;
         comparing_finch.inst_h = 3;
-
-        new_finch.increment();
-        new_finch.increment();
-        new_finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        new_finch.clock_cycle_execute(&mut rng_thread);
+        new_finch.clock_cycle_execute(&mut rng_thread);
+        new_finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(comparing_finch,new_finch);
     }
 
@@ -38,23 +37,25 @@ mod instruction_tests {
     #[test]
     fn h_alloc_1() {
         let mut finch: Finch = Finch::new(0,0,0);
-        let test_lexome: Vec<Lexome> = vec![HAlloc,NopC,NopA,NopC];
+        let test_instructions: Vec<Instructions> = vec![HAlloc, NopC, NopA, NopC];
         // We should see the length of memory to be 150 in total
-        finch.memory = test_lexome;
-        finch.increment();
+        finch.memory = test_instructions;
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.memory.len(),150 as usize);
-        let mut lexome: Vec<Lexome> = vec![HAlloc,NopC,NopA,NopC];
-        lexome.append(&mut vec![Nop; 146]);
-        assert_eq!(finch.memory, lexome);
+        let mut instructions: Vec<Instructions> = vec![HAlloc, NopC, NopA, NopC];
+        instructions.append(&mut vec![Nop; 146]);
+        assert_eq!(finch.memory, instructions);
     }
 
     #[test]
     fn h_alloc_2() {
         let mut finch: Finch = Finch::new(0,0,0);
-        let test_lexome: Vec<Lexome> = vec![HAlloc; 150];
+        let test_instructions: Vec<Instructions> = vec![HAlloc; 150];
         // We should see the length of memory to be 150 in total
-        finch.memory = test_lexome;
-        finch.increment();
+        finch.memory = test_instructions;
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.memory.len(),150 as usize);
     }
 
@@ -65,7 +66,8 @@ mod instruction_tests {
         finch.memory = vec![MovHead];
         finch.memory.append(&mut dummy_memory());
         finch.flow_h = 10;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.inst_h, finch.flow_h);
     }
 
@@ -75,7 +77,8 @@ mod instruction_tests {
         finch.memory = vec![MovHead,NopB];
         finch.memory.append(&mut dummy_memory());
         finch.flow_h = 10;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.read_h, finch.flow_h);
     }
 
@@ -85,7 +88,8 @@ mod instruction_tests {
         finch.memory = vec![MovHead,NopC];
         finch.memory.append(&mut dummy_memory());
         finch.flow_h = 10;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.writ_h, finch.flow_h);
     }
 
@@ -97,7 +101,8 @@ mod instruction_tests {
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,NopA,NopC,NopB,
                             NopC,NopA,Nop,Nop];
         finch.inst_h = 3;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.registers[2],3);
         assert_eq!(finch.registers[1],18);
         assert_eq!(finch.flow_h,24);
@@ -110,7 +115,8 @@ mod instruction_tests {
         finch.memory = vec![Nop,Nop,HSearch,NopA,MovHead,
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,NopB];
         finch.inst_h = 2;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.registers[2],1);
         assert_eq!(finch.registers[1],16);
         assert_eq!(finch.flow_h,0);
@@ -123,7 +129,8 @@ mod instruction_tests {
         finch.memory = vec![NopC,NopA,HSearch,NopA,NopB,NopC,NopA,MovHead,
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,NopB];
         finch.inst_h = 2;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.registers[2],0);
         assert_eq!(finch.registers[1],0);
         assert_eq!(finch.flow_h,0);
@@ -141,7 +148,8 @@ mod instruction_tests {
         finch.memory = vec![NopC,NopA,NopB,HSearch,NopA,NopB,NopC,NopA
                             ,MovHead,NopB];
         finch.inst_h = 3;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.registers[2],4);
         assert_eq!(finch.registers[1],6);
         assert_eq!(finch.flow_h,3);
@@ -154,7 +162,8 @@ mod instruction_tests {
                             ,MovHead,
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,NopB];
         finch.inst_h = 5;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.registers[2],4);
         assert_eq!(finch.registers[1],19);
         assert_eq!(finch.flow_h,3);
@@ -167,7 +176,8 @@ mod instruction_tests {
                             ,MovHead,
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop];
         finch.inst_h = 6;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.registers[2],3);
         assert_eq!(finch.registers[1],19);
         assert_eq!(finch.flow_h,4);
@@ -180,7 +190,8 @@ mod instruction_tests {
                             ,MovHead,
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop];
         finch.inst_h = 5;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.registers[2],3);
         assert_eq!(finch.registers[1],18);
         assert_eq!(finch.flow_h,3);
@@ -193,7 +204,8 @@ mod instruction_tests {
                             ,MovHead,
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop];
         finch.inst_h = 5;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.registers[2],0);
         assert_eq!(finch.registers[1],0);
         assert_eq!(finch.flow_h,0);
@@ -206,7 +218,8 @@ mod instruction_tests {
                             ,MovHead,
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop];
         finch.inst_h = 6;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.registers[2],4);
         assert_eq!(finch.registers[1],19);
         assert_eq!(finch.flow_h,4);
@@ -219,7 +232,8 @@ mod instruction_tests {
                             ,MovHead,
                             Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop,Nop];
         finch.inst_h = 9;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.registers[2],4);
         assert_eq!(finch.registers[1],22);
         assert_eq!(finch.flow_h,7);
@@ -244,7 +258,8 @@ mod instruction_tests {
         finch.inst_h = 2;
         finch.read_h = 1;
         finch.writ_h = 8;
-        finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        finch.clock_cycle_execute(&mut rng_thread);
         assert_eq!(finch.memory[8],NopB);
         assert_eq!(finch.read_h,2);
         assert_eq!(finch.writ_h,9);
@@ -260,8 +275,9 @@ mod instruction_tests {
         finch.inst_h = 0;
         finch.read_h = 7;
         finch.writ_h = 14;
+        let mut rng_thread: ThreadRng = rand::thread_rng();
         for _ in 0..7 {
-            finch.increment();
+            finch.clock_cycle_execute(&mut rng_thread);
         }
         assert_eq!(finch.memory[14..21],[NopA,NopB,NopC,Pop,Push,MovHead,HSearch]);
         assert_eq!(finch.read_h,14);
@@ -275,8 +291,9 @@ mod instruction_tests {
         let mut finch: Finch = Finch::new(0,0,0);
         finch.memory = vec![IfLabel,NopC,NopA,Inc];
         finch.copy_history = vec![NopB, NopA,NopB];
+        let mut rng_thread: ThreadRng = rand::thread_rng();
         for _ in 0..4 {
-            finch.increment();
+            finch.clock_cycle_execute(&mut rng_thread);
         }
         assert_eq!(finch.registers[0],0);
         assert_eq!(finch.registers[1],1);
@@ -288,8 +305,9 @@ mod instruction_tests {
         let mut finch: Finch = Finch::new(0,0,0);
         finch.memory = vec![IfLabel,NopC,NopA,Inc];
         finch.copy_history = vec![NopB, NopA,NopB,NopB];
+        let mut rng_thread: ThreadRng = rand::thread_rng();
         for _ in 0..4 {
-            finch.increment();
+            finch.clock_cycle_execute(&mut rng_thread);
         }
         assert_eq!(finch.registers[0],0);
         assert_eq!(finch.registers[1],0);
@@ -302,7 +320,8 @@ mod instruction_tests {
         finch.memory = vec![HDivide,NopC,NopA,Inc,NopB,NopC,NopA,Dec,IfLabel];
         finch.read_h = 3;
         finch.writ_h = 7;
-        let return_packet: ReturnPacket = finch.increment();
+        let mut rng_thread: ThreadRng = rand::thread_rng();
+        let return_packet: ReturnPacket = finch.clock_cycle_execute(&mut rng_thread);
         let new_finch: Finch = return_packet.return_finch.unwrap();
         assert_eq!(finch.memory,vec![HDivide,NopC,NopA]);
         assert_eq!(new_finch.memory, vec![Inc,NopB,NopC,NopA,Dec]);

@@ -3,8 +3,10 @@ use rand::rngs::ThreadRng;
 use crate::Instructions;
 use crate::instructions::{possible_instructions};
 
-pub(crate) fn copy_mutation(instruction: Instructions, mutation_probability: f64) -> Instructions {
-    let mut rng_thread: ThreadRng = rand::thread_rng();
+pub(crate) fn copy_mutation(instruction: Instructions,
+                            mutation_probability: f64,
+                            rng_thread: &mut ThreadRng,
+) -> Instructions {
     let mutation_threshold: f64 = rng_thread.gen();
     if mutation_threshold <= mutation_probability {
         let opt_mut: Option<Instructions> = sample_excluding(instruction, rng_thread);
@@ -20,7 +22,7 @@ pub(crate) fn copy_mutation(instruction: Instructions, mutation_probability: f64
     instruction
 }
 
-fn sample_excluding(instruction: Instructions, mut rng_thread: ThreadRng) -> Option<Instructions> {
+fn sample_excluding(instruction: Instructions, rng_thread: &mut ThreadRng) -> Option<Instructions> {
     let mut instructions: Vec<Instructions> = possible_instructions();
     let inst_pos: Option<usize> = instructions
         .iter()
