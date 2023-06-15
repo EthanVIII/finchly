@@ -1,6 +1,6 @@
 use rand::rngs::ThreadRng;
 use crate::Finch;
-use crate::mutations::copy_mutation;
+use crate::mutations::{copy_mutation, insertion_deletion_mutation, point_mutation};
 
 pub fn read_nop_label(memory: &Vec<Instructions>, current_pos: usize) -> Vec<Instructions> {
     let mut flag: bool = true;
@@ -74,6 +74,11 @@ impl Finch {
                 self.inc_inst_h();
                 self.skip_next_non_nop_inst = false;
                 self.age += 1;
+                self.memory = point_mutation(
+                    &self.memory,
+                    self.point_mutation_rate,
+                    thread_rng
+                );
                 return return_packet;
             }
         }
@@ -196,9 +201,17 @@ impl Finch {
                     self.read_h = 0;
                     self.writ_h = 0;
                     self.flow_h = 0;
+                    // Insertion and deletion mutation.
+                    offspring.memory = insertion_deletion_mutation(
+                        offspring.memory,
+                        offspring.divide_mutation_rate,
+                        thread_rng
+                    );
+                    println!("{:?}", offspring.memory);
                     return_packet.return_finch = Some(offspring);
+
                 }
-                //
+
             ;}
             &Instructions::HCopy => {
                 self.pre_mut_copy_history.push(self.memory[self.read_h]);

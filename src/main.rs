@@ -9,6 +9,10 @@ use rand::rngs::ThreadRng;
 
 
 fn main() {
+    let mut aviary: Aviary = Aviary {
+        dim: (30,30),
+        finches: vec![],
+    };
     let mut finch: Finch = Finch::new(0,0,0);
     let mut rng_thread: ThreadRng = rand::thread_rng();
     finch.memory = dummy_memory();
@@ -20,10 +24,8 @@ fn main() {
 
 // Input and Output
 struct Aviary {
-    max_pop: u32,
     dim: (u32,u32),
     finches: Vec<Finch>,
-    logging: LoggingType,
 }
 
 enum LoggingType {
