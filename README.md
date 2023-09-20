@@ -7,7 +7,7 @@ Finchly simulates self-replication and genetic programming. It will provide full
 
 Finchly is inspired by projects such as **Tierra** and **Avida**. In particular, Avida is used in biological research to model ecological interactions and is under active development.
 
-# Developer Documentation
+DOCUMENTATION
 
 Key documentation for this project can be found in this README. 
 
@@ -21,13 +21,13 @@ More details about this project can be found here:
 2. [World Topology](#world-topology)
 3. ...
 
- # Instruction Sets
+INSTRUCTION SETS
 
 The current default instruction set is similar to the instructions available in Avida, with the same key behavior.
 
 Finchly and Avida both have No-Operation instructions, and have multiple variants which are used as modifiers for preceding instructions and as labels.
 
-# World Topology
+WORLD TOPOLOGY
 
 The current default topology is a bounded $\mathbb{R}^2$ with Moore neighbourhood. A finch in this topology may only interact with neighbouring finches.
 
